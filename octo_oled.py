@@ -3,39 +3,63 @@ import ssd1306
 import time
 import urequests
 import json
-import config
+import octo_oled_config as config
 
 # Takes a number of seconds and returns a string of format HH:mm:ss
 def beautifyTime(seconds):
+    if seconds is None:
+        return None
+    
     # Hours
-    res = str(("0" if int(seconds/3600)<10)+int(seconds/3600))+":"
+    res = ('0' if int(seconds/3600)<10 else '')+str(int(seconds/3600))+':'
     seconds = seconds%3600
     # Minutes
-    res += str(("0" if int(seconds/60)<10)+int(seconds/60))+":"
+    res += ('0' if int(seconds/60)<10 else '')+str(int(seconds/60))+':'
     seconds = seconds%60
     # Seconds
-    res += str(("0" if seconds<10)+int(seconds))
+    res += ('0' if seconds<10 else '')+str(int(seconds))
     return res
 
-# Returns filename, elapsed time, remaining time and progress of current print job
+# Returns filename, elapsed time, remaining time and progress of current print
 def getPrintInfo():
     req = lambda url: urequests.get(config.ip+url,headers=config.headers).content
     job_info = (req('api/job')).decode('utf-8')
     data = json.loads(job_info)
-    return [data["job"]["file"]["name"], beautifyTime(data["progress"]["printTime"]), beautifyTime(data["progress"]["printTimeLeft"]), data["progress"]["completion"]]
+    
+    if data['job']['file']['name'] is not None:
+        return { 
+            'filename': data['job']['file']['name'],
+            'elapsed': beautifyTime(data['progress']['printTime']),
+            'remaining': beautifyTime(data['progress']['printTimeLeft']),
+            'percentage': data['progress']['completion'] 
+        }
+    else:
+        return None
 
-# Sends the print job information to the display
+# Sends the print information to the display
 def displayPrintInfo(info):
     oled.fill(0)
-    oled.text(info[0], 0, 16)
-    oled.text(info[1],0,32)
-    oled.text(info[2],0,48)
-    oled.text("%",0,120)
-    oled.text(str(int(info[3])),96,0)
 
-    for i in range(3,9):
-        for j in range(0,int((info[3]/100)*128)):
-            oled.pixel(j,i,1)
+    # Show nothing on the display if there is no running print job
+    if info is None:
+        oled.show()
+        return
+
+    oled.text(info['filename'], 0, 16)
+
+    if info['percentage'] < 100:
+        oled.text(info['elapsed'],0,32)
+        if info['remaining'] is not None:
+            oled.text(info['remaining'],0,48)
+        oled.text(str(int(info['percentage'])),112,3)
+    
+        # Progressbar
+        for i in range(3,9):
+            for j in range(0,int((info['percentage']/100)*110)):
+                oled.pixel(j,i,1)
+    else:
+        oled.text('Print',0,32)
+        oled.text('finished!',0,48)
 
     oled.show()
 
@@ -47,4 +71,4 @@ oled = ssd1306.SSD1306_SPI(128, 64, spi, machine.Pin(config.dc), machine.Pin(con
 while True:
     # Get and output the information
     displayPrintInfo(getPrintInfo())
-    time.sleep(10.0)
+    time.sleep(15.0)
