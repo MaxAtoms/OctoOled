@@ -22,8 +22,13 @@ def beautify_time(seconds):
 
 # Returns filename, elapsed time, remaining time and progress of current print
 def get_print_info():
-    def req(url): return urequests.get(
-        config.ip+url, headers=config.headers).content
+    def req(url):
+        while True: 
+            try:
+                return urequests.get(config.ip+url, headers=config.headers).content
+            except requests.exceptions.RequestException as e:
+                print(e)
+            
     job_info = (req('api/job')).decode('utf-8')
     data = json.loads(job_info)
 
@@ -39,12 +44,12 @@ def get_print_info():
 
 # Sends the print information to the display
 def display_print_info(info):
+    oled.fill(0)
+
     # Show nothing on the display if there is no running print job
     if info is None:
         oled.show()
         return
-
-    oled.fill(0)
 
     oled.text(info['filename'], 0, first_line)
 
