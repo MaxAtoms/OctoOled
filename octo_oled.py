@@ -5,8 +5,8 @@ import urequests
 import json
 import octo_oled_config as config
 
-# Takes a number of seconds and returns a string of format HH:mm:ss
 def beautify_time(seconds):
+	""" Take a number of seconds and return a string of format HH:mm:ss. """
     if seconds is None:
         return None
 
@@ -20,8 +20,8 @@ def beautify_time(seconds):
     res += ('0' if seconds < 10 else '')+str(int(seconds))
     return res
 
-# Returns filename, elapsed time, remaining time and progress of current print
 def get_print_info():
+	""" Return filename, elapsed time, remaining time and progress of current print """
     def req(url):
         while True: 
             try:
@@ -42,8 +42,9 @@ def get_print_info():
     else:
         return None
 
-# Sends the print information to the display
+
 def display_print_info(info):
+	""" Send print information to the display """
     oled.fill(0)
 
     # Show nothing on the display if there is no running print job
